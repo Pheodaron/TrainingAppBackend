@@ -1,21 +1,18 @@
 package com.pheodaron.TrainingApp.service;
 
 import com.pheodaron.TrainingApp.model.User;
-import com.pheodaron.TrainingApp.repository.UserRepository;
-import org.springframework.stereotype.Service;
 
-import java.util.Optional;
+import java.util.List;
 
-@Service
-public class UserService {
+public interface UserService {
 
-    private final UserRepository userRepository;
+    User register(User user);
 
-    UserService(UserRepository userRepository) {
-        this.userRepository = userRepository;
-    }
+    List<User> getAll();
 
-    public Optional<User> getUserByEmail(String email) {
-        return  userRepository.findByEmail(email);
-    }
+    User findByUsername(String username);
+
+    User findById(Long id);
+
+    void delete(Long id);
 }

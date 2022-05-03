@@ -2,7 +2,6 @@ package com.pheodaron.TrainingApp.rest;
 
 import com.pheodaron.TrainingApp.model.User;
 import com.pheodaron.TrainingApp.service.UserService;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -32,8 +31,8 @@ public class TestController {
         return testSet;
     }
 
-    @GetMapping("/get/{email}")
-    public User getUserByEmail(@PathVariable String email) {
-        return userService.getUserByEmail(email).orElseThrow(() -> new UsernameNotFoundException("User doesn't exists"));
+    @GetMapping("/get/{username}")
+    public User getUserByEmail(@PathVariable String username) {
+        return userService.findByUsername(username);
     }
 }

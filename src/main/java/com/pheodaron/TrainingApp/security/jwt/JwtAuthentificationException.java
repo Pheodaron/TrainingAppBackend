@@ -1,4 +1,4 @@
-package com.pheodaron.TrainingApp.security;
+package com.pheodaron.TrainingApp.security.jwt;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.AuthenticationException;
@@ -18,6 +18,4 @@ public class JwtAuthentificationException extends AuthenticationException {
     public HttpStatus getHttpStatus() {
         return httpStatus;
     }
-
-
 }

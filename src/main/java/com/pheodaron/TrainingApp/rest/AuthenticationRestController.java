@@ -3,7 +3,8 @@ package com.pheodaron.TrainingApp.rest;
 import com.pheodaron.TrainingApp.dto.AuthenticationRequestDto;
 import com.pheodaron.TrainingApp.model.User;
 import com.pheodaron.TrainingApp.repository.UserRepository;
-import com.pheodaron.TrainingApp.security.JwtTokenProvider;
+import com.pheodaron.TrainingApp.security.jwt.JwtTokenProvider;
+import com.pheodaron.TrainingApp.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -27,22 +28,31 @@ public class AuthenticationRestController {
 
     private final AuthenticationManager authenticationManager;
     private UserRepository userRepository;
+    private final UserService userService;
     private JwtTokenProvider jwtTokenProvider;
 
-    public AuthenticationRestController(AuthenticationManager authenticationManager, UserRepository userRepository, JwtTokenProvider jwtTokenProvider) {
+    public AuthenticationRestController(AuthenticationManager authenticationManager, UserRepository userRepository, JwtTokenProvider jwtTokenProvider, UserService userService) {
         this.authenticationManager = authenticationManager;
         this.userRepository = userRepository;
         this.jwtTokenProvider = jwtTokenProvider;
+        this.userService = userService;
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> authenticate(@RequestBody AuthenticationRequestDto request) {
+    public ResponseEntity<?> authenticate(@RequestBody AuthenticationRequestDto requestDto) {
         try {
-            authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
-            User user = userRepository.findByEmail(request.getEmail()).orElseThrow(() -> new UsernameNotFoundException("User doesn't exists"));
-            String token = jwtTokenProvider.createToken(request.getEmail(), user.getRole().name());
+            String username = requestDto.getUsername();
+            authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(requestDto.getUsername(), requestDto.getPassword()));
+            User user = userService.findByUsername(requestDto.getUsername());
+
+            if (user == null) {
+                throw new UsernameNotFoundException("USer with username not found");
+            }
+
+            String token = jwtTokenProvider.createToken(requestDto.getUsername(), user.getRoles());
+
             Map<Object, Object> response = new HashMap<>();
-            response.put("email", request.getEmail());
+            response.put("username", requestDto.getUsername());
             response.put("token", token);
 
             return ResponseEntity.ok(response);
