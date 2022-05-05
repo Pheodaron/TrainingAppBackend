@@ -1,8 +1,10 @@
 package com.pheodaron.TrainingApp.model;
 
+import com.pheodaron.TrainingApp.enums.Status;
 import lombok.Data;
 
 import javax.persistence.*;
+import java.util.Date;
 import java.util.List;
 
 @Entity
@@ -32,4 +34,18 @@ public class User extends BaseEntity{
             inverseJoinColumns = {@JoinColumn(name = "role_id", referencedColumnName = "id")}
     )
     private List<Role> roles;
+
+    public User() {
+    }
+
+    public User(String username, String firstName, String lastName, String email, String password, Status status) {
+        this.username = username;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.email = email;
+        this.password = password;
+        this.setCreated(new Date());
+        this.setUpdated(new Date());
+        this.setStatus(status);
+    }
 }

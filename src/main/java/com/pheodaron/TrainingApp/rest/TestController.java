@@ -2,6 +2,7 @@ package com.pheodaron.TrainingApp.rest;
 
 import com.pheodaron.TrainingApp.model.User;
 import com.pheodaron.TrainingApp.service.UserService;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -34,5 +35,19 @@ public class TestController {
     @GetMapping("/get/{username}")
     public User getUserByEmail(@PathVariable String username) {
         return userService.findByUsername(username);
+    }
+
+    @GetMapping("/user")
+    @PreAuthorize("hasRole('USER')  or hasRole('ADMIN')")
+    public String userAccess() {
+        return "User Here.";
+    }
+
+
+
+    @GetMapping("/admin")
+    @PreAuthorize("hasRole('ADMIN')")
+    public String adminAccess() {
+        return "Admin Here.";
     }
 }

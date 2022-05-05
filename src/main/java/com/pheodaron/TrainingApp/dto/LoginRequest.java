@@ -3,7 +3,7 @@ package com.pheodaron.TrainingApp.dto;
 import lombok.Data;
 
 @Data
-public class AuthenticationRequestDto {
+public class LoginRequest {
     private String username;
     private String password;
 }
