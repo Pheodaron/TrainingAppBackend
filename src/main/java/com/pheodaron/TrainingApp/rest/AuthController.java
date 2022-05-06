@@ -2,7 +2,7 @@ package com.pheodaron.TrainingApp.rest;
 
 import com.pheodaron.TrainingApp.dto.*;
 import com.pheodaron.TrainingApp.service.impl.AuthenticationService;
-import com.pheodaron.TrainingApp.service.impl.RefreshTokenService;
+import com.pheodaron.TrainingApp.service.impl.TokenService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -10,20 +10,25 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/app")
 public class AuthController {
-    private final RefreshTokenService refreshTokenService;
+    private final TokenService tokenService;
     private final AuthenticationService authenticationService;
 
     public AuthController(
-            RefreshTokenService refreshTokenService,
-            AuthenticationService authenticationService
+            AuthenticationService authenticationService,
+            TokenService tokenService
     ) {
-        this.refreshTokenService = refreshTokenService;
         this.authenticationService = authenticationService;
+        this.tokenService = tokenService;
     }
 
     @PostMapping("/login")
     public ResponseEntity<?> authenticationUser(@RequestBody LoginRequest loginRequest) {
         return authenticationService.authenticationUser(loginRequest);
+    }
+
+    @GetMapping("/logout/{id}")
+    public ResponseEntity<?> logout(@PathVariable Long id) {
+        return authenticationService.logoutUser(id);
     }
 
     @PostMapping("/register")
@@ -33,6 +38,6 @@ public class AuthController {
 
     @PostMapping("/refresh-token")
     public ResponseEntity<?> refreshToken(@RequestBody RefreshTokenRequest request) {
-        return ResponseEntity.ok(refreshTokenService.refreshToken(request.getRefreshToken()));
+        return ResponseEntity.ok(tokenService.replaceRefreshToken(request.getRefreshToken()));
     }
 }

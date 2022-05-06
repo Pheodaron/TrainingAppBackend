@@ -8,7 +8,6 @@ import com.pheodaron.TrainingApp.model.Role;
 import com.pheodaron.TrainingApp.model.User;
 import com.pheodaron.TrainingApp.repository.RoleRepository;
 import com.pheodaron.TrainingApp.repository.UserRepository;
-import com.pheodaron.TrainingApp.security.jwt.JwtTokenProvider;
 import com.pheodaron.TrainingApp.security.jwt.JwtUser;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -28,43 +27,39 @@ public class AuthenticationService {
     private final PasswordEncoder encoder;
     private final RoleRepository roleRepository;
     private final AuthenticationManager authenticationManager;
-    private final JwtTokenProvider jwtTokenProvider;
-    private final RefreshTokenService refreshTokenService;
+    private final TokenService tokenService;
 
     public AuthenticationService(
             AuthenticationManager authenticationManager,
             UserRepository userRepository,
             PasswordEncoder encoder,
             RoleRepository roleRepository,
-            JwtTokenProvider jwtTokenProvider,
-            RefreshTokenService refreshTokenService
+            TokenService tokenService
     ) {
         this.authenticationManager = authenticationManager;
         this.userRepository = userRepository;
         this.encoder = encoder;
         this.roleRepository = roleRepository;
-        this.jwtTokenProvider = jwtTokenProvider;
-        this.refreshTokenService = refreshTokenService;
+        this.tokenService = tokenService;
     }
 
     public ResponseEntity<?> authenticationUser(LoginRequest loginRequest) {
         if(!userRepository.existsByUsername(loginRequest.getUsername())) {
             return ResponseEntity.badRequest().body(new MessageResponse("Error: Username is not found!"));
         }
-
         Authentication authentication = authenticationManager
                 .authenticate(new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
         SecurityContextHolder.getContext().setAuthentication(authentication);
         JwtUser userDetails = (JwtUser) authentication.getPrincipal();
         List<Role> roles = getListOfRoles(userDetails.getAuthorities());
 
-        String accessToken = jwtTokenProvider.createAccessToken(userDetails.getUsername(), roles);
-        RefreshToken refreshToken = refreshTokenService.createRefreshToken(userDetails.getId());
+        String accessToken = tokenService.createAccessToken(userDetails.getUsername(), roles);
+        String refreshToken = tokenService.createRefreshToken(userDetails.getId());
 
         return ResponseEntity.ok(
             new SignupResponse(
                     accessToken,
-                    refreshToken.getToken(),
+                    refreshToken,
                     userDetails.getId(),
                     userDetails.getUsername(),
                     userDetails.getEmail(),
@@ -76,11 +71,9 @@ public class AuthenticationService {
         if (userRepository.existsByUsername(signupRequest.getUsername())) {
             return ResponseEntity.badRequest().body(new MessageResponse("Error: Username is already taken!"));
         }
-
         if (userRepository.existsByEmail(signupRequest.getEmail())) {
             return ResponseEntity.badRequest().body(new MessageResponse("Error: Email is already in use!"));
         }
-
         User user = new User(
                 signupRequest.getUsername(),
                 signupRequest.getFirstName(),
@@ -90,35 +83,18 @@ public class AuthenticationService {
                 Status.ACTIVE
         );
 
-        Set<String> strRoles = signupRequest.getRole();
-        Set<Role> roles = new HashSet<>();
-
-        if (strRoles == null) {
-            Role userRole = roleRepository.findByName(ERole.ROLE_USER)
-                    .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
-            roles.add(userRole);
-        } else {
-//            strRoles.forEach(role -> {
-//                switch (role.toLowerCase(Locale.ROOT)) {
-//                    case "admin":
-//                        Role adminRole = roleRepository.findByName(ERole.ROLE_ADMIN)
-//                                .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
-//                        roles.add(adminRole);
-//
-//                        break;
-//
-//                    default:
-//                        Role userRole = roleRepository.findByName(ERole.ROLE_USER.name());
-//                        roles.add(userRole);
-//                }
-//            });
-            return ResponseEntity.badRequest().body(new MessageResponse("Please, repeat without roles(roles will coming in future update!)"));
-        }
-        user.setRoles(new ArrayList<>(roles));
+        user.setRoles(List.of(roleRepository.findByName(ERole.ROLE_USER.name())));
         userRepository.save(user);
 
         return ResponseEntity.ok(new MessageResponse("User registered successfully"));
     }
+
+    public ResponseEntity<?> logoutUser(Long userId) {
+        tokenService.deleteRefreshTokenByUserId(userId);
+        return ResponseEntity.ok(new MessageResponse("logout!"));
+    }
+
+    //support methods-------------------------------------------------------
 
     public List<Role> getListOfRoles(Collection<? extends GrantedAuthority> authorities) {
         return authorities.stream()
