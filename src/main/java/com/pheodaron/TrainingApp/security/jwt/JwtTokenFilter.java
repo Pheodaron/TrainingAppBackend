@@ -1,6 +1,7 @@
 package com.pheodaron.TrainingApp.security.jwt;
 
 import com.pheodaron.TrainingApp.exceptions.JwtAuthenticationException;
+import com.pheodaron.TrainingApp.service.impl.TokenService;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -17,18 +18,20 @@ import java.io.IOException;
 @Component
 public class JwtTokenFilter extends GenericFilterBean {
 
-    private final JwtTokenProvider jwtTokenProvider;
+//    private final JwtTokenProvider jwtTokenProvider;
+    private final TokenService tokenService;
 
-    public JwtTokenFilter(JwtTokenProvider jwtTokenProvider) {
-        this.jwtTokenProvider = jwtTokenProvider;
+    public JwtTokenFilter(TokenService tokenService) {
+//        this.jwtTokenProvider = jwtTokenProvider;
+        this.tokenService = tokenService;
     }
 
     @Override
     public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain) throws IOException, ServletException {
-        String token = jwtTokenProvider.resolveAccessToken((HttpServletRequest) servletRequest);
+        String token = tokenService.resolveAccessTokenFromRequest((HttpServletRequest) servletRequest);
         try {
-            if (token != null && jwtTokenProvider.validateAccessToken(token)) {
-                Authentication authentication = jwtTokenProvider.getAuthentication(token);
+            if (token != null && tokenService.verifyExpirationOfAccessToken(token)) {
+                Authentication authentication = tokenService.getAuthentication(token);
                 if (authentication != null) {
                     SecurityContextHolder.getContext().setAuthentication(authentication);
                 }

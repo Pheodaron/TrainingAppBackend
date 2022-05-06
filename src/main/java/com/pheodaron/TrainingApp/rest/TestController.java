@@ -43,8 +43,6 @@ public class TestController {
         return "User Here.";
     }
 
-
-
     @GetMapping("/admin")
     @PreAuthorize("hasRole('ADMIN')")
     public String adminAccess() {
