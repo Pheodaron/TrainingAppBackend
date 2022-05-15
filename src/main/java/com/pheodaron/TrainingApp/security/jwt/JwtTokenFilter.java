@@ -1,7 +1,10 @@
 package com.pheodaron.TrainingApp.security.jwt;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.pheodaron.TrainingApp.errors.ErrorResponse;
 import com.pheodaron.TrainingApp.exceptions.JwtAuthenticationException;
 import com.pheodaron.TrainingApp.service.impl.TokenService;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -17,12 +20,9 @@ import java.io.IOException;
 
 @Component
 public class JwtTokenFilter extends GenericFilterBean {
-
-//    private final JwtTokenProvider jwtTokenProvider;
     private final TokenService tokenService;
 
     public JwtTokenFilter(TokenService tokenService) {
-//        this.jwtTokenProvider = jwtTokenProvider;
         this.tokenService = tokenService;
     }
 
@@ -38,9 +38,18 @@ public class JwtTokenFilter extends GenericFilterBean {
             }
         } catch (JwtAuthenticationException e) {
             SecurityContextHolder.clearContext();
-            ((HttpServletResponse) servletResponse).sendError(e.getHttpStatus().value());
-            throw new JwtAuthenticationException("JWT token is expired or invalid");
+            ErrorResponse errorResponse = new ErrorResponse(HttpStatus.UNAUTHORIZED, "JWT token is expired or invalid");
+            byte[] responseToSend = restResponseBytes(errorResponse);
+            ((HttpServletResponse) servletResponse).setHeader("Content-Type", "application/json");
+            ((HttpServletResponse) servletResponse).setStatus(401);
+            servletResponse.getOutputStream().write(responseToSend);
+            return;
         }
         filterChain.doFilter(servletRequest, servletResponse);
+    }
+
+    private byte[] restResponseBytes(ErrorResponse eErrorResponse) throws IOException {
+        String serialized = new ObjectMapper().writeValueAsString(eErrorResponse);
+        return serialized.getBytes();
     }
 }

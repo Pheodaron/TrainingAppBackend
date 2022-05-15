@@ -1,7 +1,7 @@
 package com.pheodaron.TrainingApp.config;
 
+
 import com.pheodaron.TrainingApp.security.JwtUserDetailsService;
-import com.pheodaron.TrainingApp.security.jwt.JwtAuthenticationEntryPoint;
 import com.pheodaron.TrainingApp.security.jwt.JwtTokenFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -22,15 +22,12 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
     private final JwtUserDetailsService userDetailsService;
-    private final JwtAuthenticationEntryPoint unauthorizedHandler;
     private final JwtTokenFilter jwtTokenFilter;
 
     public SecurityConfig(
-            JwtAuthenticationEntryPoint unauthorizedHandler,
             JwtUserDetailsService userDetailsService,
             JwtTokenFilter jwtTokenFilter
     ) {
-        this.unauthorizedHandler = unauthorizedHandler;
         this.userDetailsService = userDetailsService;
         this.jwtTokenFilter = jwtTokenFilter;
     }
@@ -38,8 +35,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     @Override
     protected void configure(HttpSecurity http) throws Exception {
         http
-                .cors().and().csrf().disable()
-                .exceptionHandling().authenticationEntryPoint(unauthorizedHandler)
+                .csrf().disable().cors()
                 .and()
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 .and()
