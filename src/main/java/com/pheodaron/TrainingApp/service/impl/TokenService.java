@@ -1,8 +1,8 @@
 package com.pheodaron.TrainingApp.service.impl;
 
-import com.pheodaron.TrainingApp.dto.RefreshTokenResponse;
-import com.pheodaron.TrainingApp.exceptions.JwtAuthenticationException;
-import com.pheodaron.TrainingApp.exceptions.TokenRefreshException;
+import com.pheodaron.TrainingApp.dto.MessageResponse;
+import com.pheodaron.TrainingApp.dto.Authentication.RefreshTokenResponse;
+import com.pheodaron.TrainingApp.exceptions.AuthenticationException;
 import com.pheodaron.TrainingApp.model.RefreshToken;
 import com.pheodaron.TrainingApp.model.Role;
 import com.pheodaron.TrainingApp.model.User;
@@ -11,6 +11,7 @@ import com.pheodaron.TrainingApp.repository.UserRepository;
 import io.jsonwebtoken.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -20,7 +21,6 @@ import org.springframework.stereotype.Service;
 import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 
@@ -64,24 +64,26 @@ public class TokenService {
         return token.getToken();
     }
 
-    public RefreshToken verifyExpirationOfRefreshToken(RefreshToken token) {
-        if (token.getExpiryDate().before(new Date())) {
-            refreshTokenRepository.delete(token);
-            throw new TokenRefreshException(token.getToken(), "Refresh token was expired. Please make a new signin request");
+    public boolean verifyExpirationOfRefreshToken(RefreshToken token) {
+        return !token.getExpiryDate().before(new Date());
+
+    }
+
+    public ResponseEntity<?> replaceRefreshToken(String requestRefreshToken) {
+        if(!refreshTokenRepository.existsByToken(requestRefreshToken)) {
+            return ResponseEntity.badRequest().body(new MessageResponse("Refresh token was not founded!"));
         }
-        return token;
-    }
-
-    public RefreshTokenResponse replaceRefreshToken(String requestRefreshToken) {
-        RefreshToken refreshToken = findRefreshTokenByToken(requestRefreshToken).orElseThrow(() -> new TokenRefreshException(requestRefreshToken,
-                "Refresh token is not in database!"));
-        refreshToken = verifyExpirationOfRefreshToken(refreshToken);
-        User user = refreshToken.getUser();
+        RefreshToken refreshTokenObject = findRefreshTokenByToken(requestRefreshToken);
+        if(!verifyExpirationOfRefreshToken(refreshTokenObject)) {
+            return ResponseEntity.badRequest().body(new MessageResponse("Refresh token was expired. Please make a new signin request!"));
+        }
+        User user = refreshTokenObject.getUser();
         String accessToken = createAccessToken(user.getUsername(), user.getRoles());
-        return new RefreshTokenResponse(accessToken, refreshToken.getToken());
+        String refreshToken = createRefreshToken(user.getId());
+        return ResponseEntity.ok().body(new RefreshTokenResponse(accessToken, refreshToken));
     }
 
-    public Optional<RefreshToken> findRefreshTokenByToken(String token) {
+    public RefreshToken findRefreshTokenByToken(String token) {
         return refreshTokenRepository.findByToken(token);
     }
 
@@ -95,7 +97,6 @@ public class TokenService {
         Claims claims = Jwts.claims().setSubject(username);
         claims.put("roles", getRoleNames(roles));
         Date now = new Date();
-//        Date validity = new Date(now.getTime() + accessTokenDurationMs * 1000);
         Date validity = Date.from(Instant.now().plus(accessTokenDurationMins, ChronoUnit.MINUTES));
         return Jwts.builder()
                 .setClaims(claims)
@@ -110,7 +111,7 @@ public class TokenService {
             Jws<Claims> claimsJws = Jwts.parser().setSigningKey(secretKey).parseClaimsJws(token);
             return !claimsJws.getBody().getExpiration().before(new Date());
         } catch (JwtException | IllegalArgumentException e) {
-            throw new JwtAuthenticationException("Jwt token is expired or invalid", HttpStatus.UNAUTHORIZED);
+            throw new AuthenticationException("Jwt token is expired or invalid", HttpStatus.UNAUTHORIZED);
         }
     }
 

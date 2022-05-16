@@ -2,22 +2,24 @@ package com.pheodaron.TrainingApp.rest;
 
 import com.pheodaron.TrainingApp.model.User;
 import com.pheodaron.TrainingApp.service.UserService;
+import com.pheodaron.TrainingApp.service.impl.TestService;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Set;
 
+@CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
-@RequestMapping("/test")
+@RequestMapping("/app/test")
 public class TestController {
 
     private final UserService userService;
+    private final TestService testService;
 
-    public TestController(UserService userService) {
+    public TestController(UserService userService, TestService testService) {
         this.userService = userService;
+        this.testService = testService;
     }
 
     private Set<String> testSet = Set.of(
@@ -27,9 +29,16 @@ public class TestController {
             "test-data-4"
     );
 
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/get")
     public Set<String> getAll() {
         return testSet;
+    }
+
+    @PreAuthorize("hasRole('USER')  or hasRole('ADMIN')")
+    @GetMapping("/testExceptionHandler")
+    public ResponseEntity<?> testExceptionHandler(@RequestParam("message") String message) {
+        return testService.testErrorException(message);
     }
 
     @GetMapping("/get/{username}")

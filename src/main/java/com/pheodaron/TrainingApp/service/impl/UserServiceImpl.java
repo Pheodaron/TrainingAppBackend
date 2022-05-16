@@ -1,17 +1,20 @@
 package com.pheodaron.TrainingApp.service.impl;
 
+import com.pheodaron.TrainingApp.dto.ProfileResponse;
 import com.pheodaron.TrainingApp.enums.Status;
 import com.pheodaron.TrainingApp.model.Role;
 import com.pheodaron.TrainingApp.model.User;
 import com.pheodaron.TrainingApp.repository.RoleRepository;
 import com.pheodaron.TrainingApp.repository.UserRepository;
 import com.pheodaron.TrainingApp.service.UserService;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class UserServiceImpl implements UserService {
@@ -73,5 +76,21 @@ public class UserServiceImpl implements UserService {
 
     public Optional<User> getUserByEmail(String email) {
         return  userRepository.findByEmail(email);
+    }
+
+    public ResponseEntity<?> getUserProfileByUsername(String username) {
+        User user = findByUsername(username);
+
+        return ResponseEntity.ok(
+                new ProfileResponse(
+                        user.getUsername(),
+                        user.getFirstName(),
+                        user.getLastName(),
+                        user.getEmail(),
+                        getListOfStrings(user.getRoles())));
+    }
+
+    public List<String> getListOfStrings(List<Role> roles) {
+        return roles.stream().map(Role::getName).collect(Collectors.toList());
     }
 }

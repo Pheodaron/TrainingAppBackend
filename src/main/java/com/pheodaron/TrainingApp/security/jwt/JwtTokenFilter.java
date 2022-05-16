@@ -2,7 +2,7 @@ package com.pheodaron.TrainingApp.security.jwt;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pheodaron.TrainingApp.errors.ErrorResponse;
-import com.pheodaron.TrainingApp.exceptions.JwtAuthenticationException;
+import com.pheodaron.TrainingApp.exceptions.AuthenticationException;
 import com.pheodaron.TrainingApp.service.impl.TokenService;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
@@ -36,7 +36,7 @@ public class JwtTokenFilter extends GenericFilterBean {
                     SecurityContextHolder.getContext().setAuthentication(authentication);
                 }
             }
-        } catch (JwtAuthenticationException e) {
+        } catch (AuthenticationException e) {
             SecurityContextHolder.clearContext();
             ErrorResponse errorResponse = new ErrorResponse(HttpStatus.UNAUTHORIZED, "JWT token is expired or invalid");
             byte[] responseToSend = restResponseBytes(errorResponse);
