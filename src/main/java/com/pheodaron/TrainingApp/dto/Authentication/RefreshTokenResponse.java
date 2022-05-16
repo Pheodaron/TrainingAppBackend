@@ -1,4 +1,4 @@
-package com.pheodaron.TrainingApp.dto;
+package com.pheodaron.TrainingApp.dto.Authentication;
 
 import lombok.Data;
 

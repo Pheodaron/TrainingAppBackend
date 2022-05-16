@@ -1,9 +1,13 @@
 package com.pheodaron.TrainingApp.service.impl;
 
-import com.pheodaron.TrainingApp.dto.*;
+import com.pheodaron.TrainingApp.dto.Authentication.LoginRequest;
+import com.pheodaron.TrainingApp.dto.Authentication.LoginResponse;
+import com.pheodaron.TrainingApp.dto.Authentication.SignupRequest;
+import com.pheodaron.TrainingApp.dto.Authentication.SignupResponse;
 import com.pheodaron.TrainingApp.enums.ERole;
 import com.pheodaron.TrainingApp.enums.Status;
-import com.pheodaron.TrainingApp.model.RefreshToken;
+import com.pheodaron.TrainingApp.exceptions.UserAlreadyExistException;
+import com.pheodaron.TrainingApp.exceptions.UserNotFoundByUsernameException;
 import com.pheodaron.TrainingApp.model.Role;
 import com.pheodaron.TrainingApp.model.User;
 import com.pheodaron.TrainingApp.repository.RoleRepository;
@@ -22,14 +26,14 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
-public class AuthenticationService {
+public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder encoder;
     private final RoleRepository roleRepository;
     private final AuthenticationManager authenticationManager;
     private final TokenService tokenService;
 
-    public AuthenticationService(
+    public AuthService(
             AuthenticationManager authenticationManager,
             UserRepository userRepository,
             PasswordEncoder encoder,
@@ -45,7 +49,7 @@ public class AuthenticationService {
 
     public ResponseEntity<?> authenticationUser(LoginRequest loginRequest) {
         if(!userRepository.existsByUsername(loginRequest.getUsername())) {
-            return ResponseEntity.badRequest().body(new MessageResponse("Error: Username is not found!"));
+            throw new UserNotFoundByUsernameException("User with username " + loginRequest.getUsername() + " not found!");
         }
         Authentication authentication = authenticationManager
                 .authenticate(new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
@@ -56,23 +60,15 @@ public class AuthenticationService {
         String accessToken = tokenService.createAccessToken(userDetails.getUsername(), roles);
         String refreshToken = tokenService.createRefreshToken(userDetails.getId());
 
-        return ResponseEntity.ok(
-            new SignupResponse(
-                    accessToken,
-                    refreshToken,
-                    userDetails.getId(),
-                    userDetails.getUsername(),
-                    userDetails.getEmail(),
-                    getListOfStrings(roles)
-            ));
+        return ResponseEntity.ok(new LoginResponse(accessToken, refreshToken));
     }
 
     public ResponseEntity<?> registerUser(SignupRequest signupRequest) {
         if (userRepository.existsByUsername(signupRequest.getUsername())) {
-            return ResponseEntity.badRequest().body(new MessageResponse("Error: Username is already taken!"));
+            throw new UserAlreadyExistException("User with username: " + signupRequest.getUsername() + " already exists!");
         }
         if (userRepository.existsByEmail(signupRequest.getEmail())) {
-            return ResponseEntity.badRequest().body(new MessageResponse("Error: Email is already in use!"));
+            throw new UserAlreadyExistException("User with email: " + signupRequest.getEmail() + " already exists!");
         }
         User user = new User(
                 signupRequest.getUsername(),
@@ -86,12 +82,7 @@ public class AuthenticationService {
         user.setRoles(List.of(roleRepository.findByName(ERole.ROLE_USER.name())));
         userRepository.save(user);
 
-        return ResponseEntity.ok(new MessageResponse("User registered successfully"));
-    }
-
-    public ResponseEntity<?> logoutUser(Long userId) {
-        tokenService.deleteRefreshTokenByUserId(userId);
-        return ResponseEntity.ok(new MessageResponse("logout!"));
+        return ResponseEntity.ok(new SignupResponse("User registered successfully!"));
     }
 
     //support methods-------------------------------------------------------
